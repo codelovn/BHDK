@@ -6,255 +6,382 @@
     <title>Kỷ niệm 2 tháng</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
+        /* --- CẤU HÌNH GIAO DIỆN --- */
         :root {
-            --bg-color: #fdf2f8;
-            --card-bg: #ffffff;
-            --text-color: #5a4a42;
-            --accent-pink: #f8c8d8;
+            --primary: #ff8fa3;
+            --bg-dark: #121212;
+            --text-light: #f0f0f0;
+        }
+        body {
+            margin: 0; padding: 0;
+            height: 100vh; height: -webkit-fill-available;
+            display: flex; justify-content: center; align-items: center;
+            background-color: var(--bg-dark);
+            background-image: radial-gradient(circle at 50% 30%, #2a1a20 0%, #000000 100%);
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden; color: var(--text-light);
+            touch-action: none; /* Chống cuộn trang khi chơi game */
         }
 
-        body, html {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-image: radial-gradient(#fff0f5 10%, transparent 10%), radial-gradient(#fff0f5 10%, transparent 10%);
-            background-size: 30px 30px;
-            background-position: 0 0, 15px 15px;
-        }
-
-        .stack-container {
+        #main-container {
+            width: 90vw; height: 85vh;
+            max-width: 420px;
             position: relative;
-            width: 88%;
-            max-width: 400px;
-            height: 75vh;
-            perspective: 1000px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 24px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
         }
 
-        .card {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            top: 0;
-            left: 0;
-            background-color: var(--card-bg);
-            border-radius: 20px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
-            padding: 20px;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.5s;
+        /* --- QUẢN LÝ CÁC MÀN (STAGES) --- */
+        .stage {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            padding: 20px; box-sizing: border-box;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            transform: scale(0.95);
+            z-index: 1;
+        }
+        .stage.active { opacity: 1; pointer-events: auto; transform: scale(1); z-index: 10; }
+        .stage.completed { opacity: 0; pointer-events: none; transform: translateY(-30px); }
+
+        .game-header { text-align: center; margin-bottom: 10px; flex-shrink: 0; }
+        .game-title { color: var(--primary); font-size: 1.1rem; margin: 0; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+        .game-instruction { font-size: 0.8rem; opacity: 0.7; margin-top: 3px; font-style: italic; }
+
+        /* KHUNG GAME */
+        .game-area {
+            flex: 1; position: relative;
+            border-radius: 12px; overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.15);
+            display: flex; justify-content: center; align-items: center;
+            background: #000;
+        }
+        .hidden-photo {
+            width: 100%; height: 100%; object-fit: cover;
+            position: absolute; top: 0; left: 0; z-index: 1;
+        }
+
+        /* KHUNG CHỮ (CAPTION) */
+        .caption-container {
+            min-height: 80px; margin-top: 15px;
+            display: flex; flex-direction: column; align-items: center;
+            opacity: 0; transition: opacity 0.8s;
+        }
+        .stage.reveal .caption-container { opacity: 1; }
+
+        .caption-text {
+            background: rgba(255,255,255,0.1); padding: 10px 15px;
+            border-radius: 12px; font-size: 0.9rem; line-height: 1.4;
+            text-align: center; color: #eee; width: 100%; box-sizing: border-box;
+        }
+
+        /* NÚT TIẾP TỤC (Chỉ hiện khi thắng) */
+        .next-btn {
+            margin-top: 10px;
+            background: linear-gradient(45deg, #ff8fa3, #ffc1e3);
+            border: none; padding: 8px 25px; border-radius: 20px;
+            color: #fff; font-weight: bold; font-size: 0.9rem;
+            cursor: pointer; opacity: 0; pointer-events: none;
+            transform: translateY(10px); transition: all 0.5s;
+            box-shadow: 0 4px 15px rgba(255, 143, 163, 0.4);
+        }
+        .stage.reveal .next-btn {
+            opacity: 1; pointer-events: auto; transform: translateY(0);
+        }
+        .next-btn:active { transform: scale(0.95); }
+
+        /* --- GAME 1: BÓC QUÀ (5x5) --- */
+        .gift-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5;
+            display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(5, 1fr);
+        }
+        .gift-piece {
+            background: #ffb7b2; border: 1px solid rgba(255,255,255,0.2);
+            transition: 0.3s;
+        }
+        .gift-piece.ripped { opacity: 0; pointer-events: none; transform: scale(0.5); }
+
+        /* --- GAME 2: PUZZLE (3x3) --- */
+        .puzzle-grid {
+            width: 100%; height: 100%; z-index: 5;
+            display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+            gap: 1px; background: #333;
+        }
+        .puzzle-piece {
+            background-image: url('https://i.imgur.com/gm4qaiD.jpeg'); /* Ảnh mới */
+            background-size: 300% 300%; /* Vì chia 3 cột */
+            transition: transform 0.3s, filter 0.3s;
+            filter: brightness(0.7) sepia(0.5);
             cursor: pointer;
-            border: 1px solid #fff;
+        }
+        .puzzle-piece.solved { filter: none; cursor: default; z-index: 1; }
+
+        /* --- GAME 3: LAU KÍNH --- */
+        .fog-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 6;
+            background: rgba(200,220,255,0.5); backdrop-filter: blur(20px);
+            transition: opacity 0.5s;
         }
 
-        /* Xếp lớp các tấm ảnh */
-        .card:nth-child(1) { z-index: 4; transform: rotate(-3deg) translateY(0); }
-        .card:nth-child(2) { z-index: 3; transform: rotate(2deg) translateY(0); }
-        .card:nth-child(3) { z-index: 2; transform: rotate(-2deg) translateY(0); }
-        .card:nth-child(4) { z-index: 1; transform: rotate(0deg) translateY(0); }
-
-        .photo-frame {
-            flex: 3;
-            width: 100%;
-            border-radius: 12px;
-            overflow: hidden;
-            border: 4px solid #fff;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        /* --- MÀN 4: HOA SEN --- */
+        .final-msg {
+            height: 50%; overflow-y: auto; font-size: 0.95rem; line-height: 1.6;
+            padding: 0 5px; margin-bottom: 10px;
         }
+        .lotus-wrapper { height: 160px; display: flex; justify-content: center; align-items: flex-end; }
+        .lotus-svg { width: 140px; height: auto; opacity: 0; transform: translateY(30px); transition: 2s; }
+        .lotus-svg.bloom { opacity: 1; transform: translateY(0); }
 
-        .photo-frame img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+        /* --- MÀN 5: LÁ THƯ BÍ MẬT --- */
+        .envelope-container {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100%; cursor: pointer; transition: 0.5s;
         }
-
-        .caption {
-            flex: 1;
-            margin-top: 15px;
-            text-align: center;
-            font-size: 1.05rem;
-            color: var(--text-color);
-            line-height: 1.4;
+        .envelope-icon { font-size: 80px; animation: bounce 2s infinite; }
+        .click-hint { font-size: 0.9rem; margin-top: 10px; opacity: 0.8; }
+        
+        .letter-content {
+            display: none; width: 100%; height: 100%;
+            background: #fff; color: #333;
+            border-radius: 10px; padding: 25px; box-sizing: border-box;
+            font-family: 'Times New Roman', serif;
+            box-shadow: 0 0 20px rgba(255,255,255,0.2);
             overflow-y: auto;
-            padding: 5px;
-            font-style: italic;
-            font-weight: 500;
+            animation: unfold 1s ease forwards;
         }
+        .letter-text { font-size: 1.05rem; line-height: 1.8; text-align: justify; }
+        .letter-sign { text-align: right; margin-top: 20px; font-weight: bold; font-style: italic; }
 
-        /* CARD CUỐI CÙNG */
-        .final-card-content {
-            text-align: left;
-            color: var(--text-color);
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start; /* Đẩy nội dung lên trên để nhường chỗ cho hoa sen */
-            position: relative;
-        }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        @keyframes unfold { from { transform: scaleY(0); opacity: 0; } to { transform: scaleY(1); opacity: 1; } }
 
-        .final-card-content h2 {
-            text-align: center;
-            color: #d48c9f;
-            margin: 10px 0 15px 0;
-            font-size: 1.5rem;
-        }
-
-        .message-body {
-            font-size: 0.95rem;
-            line-height: 1.5;
-            white-space: pre-wrap;
-            overflow-y: auto;
-            max-height: 60%; /* Giới hạn chiều cao để không che mất hoa */
-            padding-right: 5px;
-            margin-bottom: 20px;
-        }
-
-        /* --- VẼ HOA SEN BẰNG SVG --- */
-        .lotus-container {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 120px;
-            display: flex;
-            justify-content: center;
-            align-items: flex-end;
-            opacity: 0;
-            transform: translateY(30px);
-            transition: all 1.5s ease-out;
-            pointer-events: none;
-        }
-
-        .lotus-container.show {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        /* Hiệu ứng phát sáng cho hoa sen */
-        .lotus-svg {
-            width: 120px;
-            height: auto;
-            filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.9)) 
-                    drop-shadow(0 0 5px rgba(248, 200, 216, 0.6));
-            animation: breathe 3s infinite ease-in-out;
-        }
-
-        @keyframes breathe {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-
-        .card.fly-away {
-            transform: translateY(-120vh) rotate(15deg) !important;
-            opacity: 0;
-        }
     </style>
 </head>
 <body>
 
-    <div class="stack-container" id="cardStack">
-        <div class="card" onclick="nextCard(1)">
-            <div class="photo-frame">
-                <img src="https://i.imgur.com/9WzXQUg.jpeg" alt="Ngày đầu">
-            </div>
-            <div class="caption">
-                Anh có nhớ hăm đây là ngày đầu tiên mà mình đi chơi với nhau nè :> thấy vậy thôi cũng tưởng rủ hăm được đó tại đó giờ rủ có bao giờ được đâu -.-
-            </div>
-        </div>
+<div id="main-container">
 
-        <div class="card" onclick="nextCard(2)">
-            <div class="photo-frame">
-                <img src="https://i.imgur.com/O1BPg7b.jpeg" alt="Tặng hoa">
-            </div>
-            <div class="caption">
-                Anh có nhớ ngày đầu tiên mình quen nhau hongggg, nói đừng có cười chứ đây là lần đầu tiên em được tặng hoa đó =))
-            </div>
+    <div id="stage1" class="stage active">
+        <div class="game-header">
+            <h3 class="game-title">Màn 1: Phá Băng</h3>
+            <div class="game-instruction">Chạm vào từng ô để mở quà (25 ô)</div>
         </div>
-
-        <div class="card" onclick="nextCard(3)">
-            <div class="photo-frame">
-                <img src="https://i.imgur.com/FettR33.jpeg" alt="1 tháng">
-            </div>
-            <div class="caption">
-                Em hong tin là từ bạn qua mạng mà mình có thể quen nhau tới bây giờ đó =))) kỷ niệm 1 thánggggg
-            </div>
+        <div class="game-area">
+            <img src="https://i.imgur.com/9WzXQUg.jpeg" class="hidden-photo">
+            <div class="gift-layer" id="giftGrid"></div>
         </div>
-
-        <div class="card final-card" style="background: linear-gradient(to bottom, #fff, #fff0f5);">
-            <div class="final-card-content">
-                <h2>Happy 2 Months! 🎉</h2>
-                <div class="message-body">Hôm nay là kỷ niệm 2 tháng rồi dù có nhiều biến cố, nhiều chuyện buồn cũng như có nhiều chuyện vui, ai cũng có quan điểm, cũng có cách sống, cũng có tình cảnh riêng trong mọi vấn đề của mỗi người tuy nhiên dù có nhiều khác biệt ấy mình vẫn ở đây, theo em mối quan hệ tình cảm không phải là hoà hợp với nhau mà là cùng phát triển điểm chung và tôn trọng điểm khác biệt, hướng đến mục tiêu chung vì hạnh phúc chung, em mong rằng dù cho mai về sau em mong rằng anh sẽ thật hạnh phúc, mạnh khoẻ và luôn mỉn cười anh nhé, em thương anh nhiềuuuuuuu và anh hãy thương anh nhiều nhé.</div>
-                
-                <div class="lotus-container" id="lotusEffect">
-                    <svg class="lotus-svg" viewBox="0 0 100 80" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                            <linearGradient id="lotusGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                                <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
-                                <stop offset="100%" style="stop-color:#ffe6ee;stop-opacity:1" />
-                            </linearGradient>
-                        </defs>
-                        <path d="M30 60 Q10 40 30 20 Q40 40 30 60" fill="url(#lotusGradient)" stroke="#eec0c0" stroke-width="0.5"/>
-                        <path d="M20 65 Q5 45 20 30 Q30 50 20 65" fill="url(#lotusGradient)" stroke="#eec0c0" stroke-width="0.5"/>
-                        <path d="M70 60 Q90 40 70 20 Q60 40 70 60" fill="url(#lotusGradient)" stroke="#eec0c0" stroke-width="0.5"/>
-                        <path d="M80 65 Q95 45 80 30 Q70 50 80 65" fill="url(#lotusGradient)" stroke="#eec0c0" stroke-width="0.5"/>
-                        <path d="M50 70 Q30 40 50 10 Q70 40 50 70" fill="white" stroke="#eec0c0" stroke-width="0.5"/>
-                        <path d="M35 70 Q50 80 65 70" fill="none" stroke="#a0c0a0" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                </div>
-            </div>
+        <div class="caption-container">
+            <div class="caption-text">Anh có nhớ hăm đây là ngày đầu tiên mà mình đi chơi với nhau nè :> thấy vậy thôi cũng tưởng rủ hăm được đó tại đó giờ rủ có bao giờ được đâu -.-</div>
+            <button class="next-btn" onclick="goToStage(2)">Tiếp tục &rarr;</button>
         </div>
     </div>
 
-    <script>
-        let currentCardIndex = 1;
-        const totalCards = 4;
+    <div id="stage2" class="stage">
+        <div class="game-header">
+            <h3 class="game-title">Màn 2: Ghép Ký Ức</h3>
+            <div class="game-instruction">Xoay 9 mảnh ghép về đúng chiều</div>
+        </div>
+        <div class="game-area" style="background: transparent; border: none;">
+            <div class="puzzle-grid" id="puzzleGrid">
+                </div>
+        </div>
+        <div class="caption-container">
+            <div class="caption-text">Anh có nhớ ngày đầu tiên mình quen nhau hongggg, nói đừng có cười chứ đây là lần đầu tiên em được tặng hoa =))</div>
+            <button class="next-btn" onclick="goToStage(3)">Tiếp tục &rarr;</button>
+        </div>
+    </div>
 
-        function nextCard(cardIndex) {
-            if (cardIndex !== currentCardIndex) return;
-            const cards = document.querySelectorAll('.card');
-            const currentCard = cards[currentCardIndex - 1];
-            currentCard.classList.add('fly-away');
-            currentCardIndex++;
+    <div id="stage3" class="stage">
+        <div class="game-header">
+            <h3 class="game-title">Màn 3: Tìm Lại Ảnh Rõ</h3>
+            <div class="game-instruction">Chạm liên tục 30 lần để lau kính</div>
+        </div>
+        <div class="game-area" onclick="tapToClean()">
+            <img src="https://i.imgur.com/FettR33.jpeg" class="hidden-photo" id="photoBlur" style="filter: blur(30px);">
+            <div class="fog-layer" id="fogLayer"></div>
+        </div>
+        <div class="caption-container">
+            <div class="caption-text">Em hong tin là từ bạn qua mạng mà mình có thể quen nhau tới bây giờ đó :> kỷ niệm 1 thánggggg</div>
+            <button class="next-btn" onclick="goToStage(4)">Tiếp tục &rarr;</button>
+        </div>
+    </div>
 
-            if (currentCardIndex === totalCards) {
-                setTimeout(() => { triggerFinalEffects(); }, 600);
+    <div id="stage4" class="stage">
+        <h2 style="text-align: center; color: #ff8fa3; margin: 10px 0;">Happy 2 Months! 🎉</h2>
+        <div class="final-msg">Hôm nay là kỷ niệm 2 tháng rồi dù có nhiều biến cố, nhiều chuyện buồn cũng như có nhiều chuyện vui, ai cũng có quan điểm, cũng có cách sống, cũng có tình cảnh riêng trong mọi vấn đề của mỗi người tuy nhiên dù có nhiều khác biệt ấy mình vẫn ở đây, theo em mối quan hệ tình cảm không phải là hoà hợp với nhau mà là cùng phát triển điểm chung và tôn trọng điểm khác biệt, hướng đến mục tiêu chung vì hạnh phúc chung, em mong rằng dù cho mai về sau em mong rằng anh sẽ thật hạnh phúc, mạnh khoẻ và luôn mỉn cười anh nhé, em thương anh nhiềuuuuuuu và anh hãy thương anh nhiều nhé</div>
+        
+        <div class="lotus-wrapper">
+             <svg class="lotus-svg" id="lotusObj" viewBox="0 0 200 150">
+                <defs>
+                    <radialGradient id="pGrad" cx="50%" cy="100%" r="80%"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#ffc1e3"/></radialGradient>
+                    <filter id="glow"><feGaussianBlur stdDeviation="3" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                </defs>
+                <g filter="url(#glow)">
+                    <path d="M60 110 Q30 80 50 50 Q70 80 80 110" fill="url(#pGrad)" stroke="#eec0c0" stroke-width="0.5" />
+                    <path d="M140 110 Q170 80 150 50 Q130 80 120 110" fill="url(#pGrad)" stroke="#eec0c0" stroke-width="0.5" />
+                    <path d="M40 120 Q10 90 30 70 Q60 100 70 125" fill="url(#pGrad)" stroke="#eec0c0" stroke-width="0.5" />
+                    <path d="M160 120 Q190 90 170 70 Q140 100 130 125" fill="url(#pGrad)" stroke="#eec0c0" stroke-width="0.5" />
+                    <path d="M80 115 Q60 60 90 30 Q110 60 100 115" fill="#fff" stroke="#eec0c0" stroke-width="0.5" />
+                    <path d="M120 115 Q140 60 110 30 Q90 60 100 115" fill="#fff" stroke="#eec0c0" stroke-width="0.5" />
+                    <path d="M100 120 Q75 70 100 20 Q125 70 100 120" fill="#ffffff" stroke="#ffb7b2" stroke-width="1" />
+                    <circle cx="100" cy="90" r="5" fill="#ffd700" opacity="0.8" />
+                </g>
+                <path d="M40 130 Q100 160 160 130" fill="none" stroke="#81c784" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+        </div>
+        
+        <div class="caption-container" style="opacity: 1; margin-top: 5px;">
+            <button class="next-btn" style="opacity: 1; pointer-events: auto; transform: translateY(0);" onclick="goToStage(5)">Vẫn còn một điều nữa... &rarr;</button>
+        </div>
+    </div>
+
+    <div id="stage5" class="stage">
+        <div class="envelope-container" id="envelopeBox" onclick="openLetter()">
+            <div class="envelope-icon">📩</div>
+            <div class="click-hint">Có một lá thư dành cho anh<br>(Chạm để mở)</div>
+        </div>
+
+        <div class="letter-content" id="letterContent">
+            <h3 style="text-align: center; color: #555; margin-top: 0;">Gửi anh...</h3>
+            <div class="letter-text">
+                Thật ra em vẫn còn nhiều chuyện muốn được nói ra nhưng em nghĩ khi nói ra chúng ta sẽ bị đối lập quan điểm sâu sắc hoặc anh không chấp nhận được nên đừng giận em nha. Em nói không phải để anh tò mò mà thực sự em vẫn còn rất nhiều vấn đề và em xin giữ cho em chờ khi nào em cảm giác an toàn cho mối quan hệ để nói ra thì mình cùng trò chuyện nha anh :< đây là thứ làm em phiền lòng rất nhiều nhưng mà em sẽ chờ, anh cũng đừng vội nha :<
+            </div>
+            <div class="letter-sign">Thương anh ❤️</div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- GAME 1: BÓC QUÀ 5x5 (25 ô) ---
+    const grid1 = document.getElementById('giftGrid');
+    let pieces1 = 25;
+    let opened1 = 0;
+    
+    for(let i=0; i<25; i++) {
+        let div = document.createElement('div');
+        div.className = 'gift-piece';
+        div.onclick = function() {
+            if(!this.classList.contains('ripped')) {
+                this.classList.add('ripped');
+                opened1++;
+                if(navigator.vibrate) navigator.vibrate(10);
+                if(opened1 === pieces1) showNext(1);
             }
         }
+        grid1.appendChild(div);
+    }
 
-        function triggerFinalEffects() {
-            // Hiệu ứng pháo hoa
-            var duration = 3 * 1000;
-            var end = Date.now() + duration;
-            (function frame() {
-                var timeLeft = end - Date.now();
-                if (timeLeft <= 0) return;
-                confetti({
-                    particleCount: 3,
-                    angle: 60,
-                    spread: 55,
-                    origin: { x: 0 },
-                    colors: ['#ffb7b2', '#ffdac1', '#e2f0cb', '#b5ead7', '#c7ceea'] // Màu pastel
-                });
-                confetti({
-                    particleCount: 3,
-                    angle: 120,
-                    spread: 55,
-                    origin: { x: 1 },
-                    colors: ['#ffb7b2', '#ffdac1', '#e2f0cb', '#b5ead7', '#c7ceea']
-                });
-                requestAnimationFrame(frame);
-            }());
+    // --- GAME 2: PUZZLE 3x3 (9 ô) ---
+    const grid2 = document.getElementById('puzzleGrid');
+    const positions = ['0% 0%', '50% 0%', '100% 0%', '0% 50%', '50% 50%', '100% 50%', '0% 100%', '50% 100%', '100% 100%'];
+    
+    for(let i=0; i<9; i++) {
+        let div = document.createElement('div');
+        div.className = 'puzzle-piece';
+        // Set background đúng vị trí
+        div.style.backgroundPosition = positions[i];
+        
+        // Random xoay ban đầu (tránh 0 độ)
+        let rots = [90, 180, 270];
+        let startRot = rots[Math.floor(Math.random()*3)];
+        div.setAttribute('data-rot', startRot);
+        div.style.transform = `rotate(${startRot}deg)`;
 
-            // Hiện hoa sen
-            document.getElementById('lotusEffect').classList.add('show');
+        div.onclick = function() {
+            if(this.classList.contains('solved')) return;
+            
+            let r = parseInt(this.getAttribute('data-rot'));
+            r += 90;
+            this.style.transform = `rotate(${r}deg)`;
+            this.setAttribute('data-rot', r);
+            
+            checkPuzzle();
         }
-    </script>
+        grid2.appendChild(div);
+    }
+
+    function checkPuzzle() {
+        let pieces = document.querySelectorAll('.puzzle-piece');
+        let done = true;
+        pieces.forEach(p => {
+            let r = parseInt(p.getAttribute('data-rot'));
+            if(r % 360 !== 0) done = false;
+        });
+        
+        if(done) {
+            pieces.forEach(p => {
+                p.classList.add('solved');
+                p.style.filter = 'brightness(1.1)';
+            });
+            showNext(2);
+        }
+    }
+
+    // --- GAME 3: LAU KÍNH (30 Taps) ---
+    let taps = 0;
+    const maxTaps = 30;
+    function tapToClean() {
+        if(taps >= maxTaps) return;
+        taps++;
+        
+        let blur = 30 - (taps/maxTaps)*30;
+        let opacity = 1 - (taps/maxTaps);
+        
+        document.getElementById('photoBlur').style.filter = `blur(${blur}px)`;
+        document.getElementById('fogLayer').style.opacity = opacity;
+
+        if(taps === maxTaps) {
+            document.getElementById('photoBlur').style.filter = 'none';
+            showNext(3);
+        }
+    }
+
+    // --- CHUYỂN MÀN CHUNG ---
+    function showNext(stageId) {
+        document.getElementById(`stage${stageId}`).classList.add('reveal');
+        if(navigator.vibrate) navigator.vibrate([50,50,50]);
+    }
+
+    function goToStage(nextId) {
+        // Ẩn màn hiện tại
+        document.querySelector('.stage.active').classList.remove('active');
+        document.querySelector('.stage.active')?.classList.add('completed');
+        
+        // Hiện màn mới
+        let nextStage = document.getElementById(`stage${nextId}`);
+        nextStage.classList.add('active');
+
+        // Nếu là màn 4 (Hoa sen) thì kích hoạt hiệu ứng
+        if(nextId === 4) {
+            setTimeout(() => {
+                document.getElementById('lotusObj').classList.add('bloom');
+                fireConfetti();
+            }, 500);
+        }
+    }
+
+    function fireConfetti() {
+        let end = Date.now() + 3000;
+        let colors = ['#ffc1e3', '#ffffff', '#ffd700'];
+        (function frame() {
+            if (Date.now() > end) return;
+            confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0 }, colors: colors });
+            confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1 }, colors: colors });
+            requestAnimationFrame(frame);
+        }());
+    }
+
+    // --- LÁ THƯ BÍ MẬT ---
+    function openLetter() {
+        document.getElementById('envelopeBox').style.display = 'none';
+        document.getElementById('letterContent').style.display = 'block';
+    }
+</script>
 </body>
 </html>
