@@ -4,232 +4,256 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Kỷ niệm 2 tháng</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
-        /* --- CẤU HÌNH MÀU SẮC --- */
-        body {
-            background-color: #fdf2f8; /* Nền hồng phấn */
+        :root {
+            --bg-color: #fdf2f8;
+            --card-bg: #ffffff;
+            --text-color: #5a4a42;
+            --accent-pink: #f8c8d8;
+        }
+
+        body, html {
+            height: 100%;
             margin: 0;
             padding: 0;
-            height: 100vh;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            overflow: hidden;
+            background-image: radial-gradient(#fff0f5 10%, transparent 10%), radial-gradient(#fff0f5 10%, transparent 10%);
+            background-size: 30px 30px;
+            background-position: 0 0, 15px 15px;
         }
 
-        /* --- KHUNG CHỨA (Container) --- */
         .stack-container {
             position: relative;
-            width: 85vw;  /* Chiều ngang 85% màn hình */
-            height: 70vh; /* Chiều dọc 70% màn hình */
+            width: 88%;
             max-width: 400px;
+            height: 75vh;
+            perspective: 1000px;
         }
 
-        /* --- THIẾT KẾ THẺ (Card) --- */
         .card {
             position: absolute;
-            top: 0;
-            left: 0;
             width: 100%;
             height: 100%;
-            background: white;
+            top: 0;
+            left: 0;
+            background-color: var(--card-bg);
             border-radius: 20px;
-            padding: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+            padding: 20px;
             box-sizing: border-box;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15); /* Đổ bóng cho nổi */
-            border: 1px solid #eee; /* Viền mỏng */
-            
-            /* Sắp xếp nội dung bên trong */
             display: flex;
             flex-direction: column;
-            transition: transform 0.6s ease-out, opacity 0.5s;
+            transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.5s;
             cursor: pointer;
+            border: 1px solid #fff;
         }
 
-        /* Xếp chồng các thẻ (Thẻ 1 nằm trên cùng) */
-        .card:nth-child(1) { z-index: 10; transform: rotate(-2deg); }
-        .card:nth-child(2) { z-index: 9; transform: rotate(2deg); }
-        .card:nth-child(3) { z-index: 8; transform: rotate(-1deg); }
-        .card:nth-child(4) { z-index: 7; transform: rotate(0deg); }
+        /* Xếp lớp các tấm ảnh */
+        .card:nth-child(1) { z-index: 4; transform: rotate(-3deg) translateY(0); }
+        .card:nth-child(2) { z-index: 3; transform: rotate(2deg) translateY(0); }
+        .card:nth-child(3) { z-index: 2; transform: rotate(-2deg) translateY(0); }
+        .card:nth-child(4) { z-index: 1; transform: rotate(0deg) translateY(0); }
 
-        /* --- KHUNG ẢNH --- */
         .photo-frame {
-            flex: 3; /* Chiếm 3 phần chiều cao */
+            flex: 3;
             width: 100%;
-            border-radius: 15px;
+            border-radius: 12px;
             overflow: hidden;
-            border: 2px solid #ffdde1; /* Viền hồng nhạt quanh ảnh */
-            background-color: #eee;
-            margin-bottom: 15px;
+            border: 4px solid #fff;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
         .photo-frame img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            display: block;
         }
 
-        /* --- CHỮ VIẾT (Caption) --- */
         .caption {
-            flex: 1; /* Chiếm 1 phần chiều cao */
+            flex: 1;
+            margin-top: 15px;
             text-align: center;
-            color: #555;
-            font-size: 16px;
+            font-size: 1.05rem;
+            color: var(--text-color);
             line-height: 1.4;
             overflow-y: auto;
+            padding: 5px;
             font-style: italic;
+            font-weight: 500;
         }
 
-        /* --- THẺ CUỐI CÙNG (Lời chúc) --- */
+        /* CARD CUỐI CÙNG */
         .final-card-content {
+            text-align: left;
+            color: var(--text-color);
             height: 100%;
             display: flex;
             flex-direction: column;
-            text-align: left;
+            justify-content: flex-start; /* Đẩy nội dung lên trên để nhường chỗ cho hoa sen */
+            position: relative;
         }
 
         .final-card-content h2 {
             text-align: center;
-            color: #d63384; /* Màu hồng đậm */
-            margin: 0 0 10px 0;
+            color: #d48c9f;
+            margin: 10px 0 15px 0;
+            font-size: 1.5rem;
         }
 
         .message-body {
-            font-size: 15px;
+            font-size: 0.95rem;
             line-height: 1.5;
-            color: #333;
-            overflow-y: auto;
             white-space: pre-wrap;
+            overflow-y: auto;
+            max-height: 60%; /* Giới hạn chiều cao để không che mất hoa */
+            padding-right: 5px;
             margin-bottom: 20px;
-            flex-grow: 1;
         }
 
-        /* --- HIỆU ỨNG HOA SEN (Dùng Emoji) --- */
-        .lotus-emoji {
-            font-size: 80px; /* Kích thước hoa sen to */
-            text-align: center;
-            opacity: 0; /* Ẩn ban đầu */
-            transform: scale(0.5);
-            transition: all 1s ease;
-            margin-top: auto; /* Đẩy xuống đáy */
-            filter: drop-shadow(0 0 15px rgba(255,182,193, 0.8)); /* Hiệu ứng phát sáng */
-            animation: float 3s ease-in-out infinite; /* Hiệu ứng trôi nhẹ */
+        /* --- VẼ HOA SEN BẰNG SVG --- */
+        .lotus-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 120px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 1.5s ease-out;
+            pointer-events: none;
         }
 
-        .lotus-emoji.show {
+        .lotus-container.show {
             opacity: 1;
-            transform: scale(1.2); /* Phóng to khi hiện */
+            transform: translateY(0);
         }
 
-        @keyframes float {
-            0% { transform: translateY(0px) scale(1.2); }
-            50% { transform: translateY(-10px) scale(1.2); }
-            100% { transform: translateY(0px) scale(1.2); }
+        /* Hiệu ứng phát sáng cho hoa sen */
+        .lotus-svg {
+            width: 120px;
+            height: auto;
+            filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.9)) 
+                    drop-shadow(0 0 5px rgba(248, 200, 216, 0.6));
+            animation: breathe 3s infinite ease-in-out;
         }
 
-        /* --- CLASS KHI CARD BAY ĐI --- */
-        .fly-away {
-            transform: translate(100vw, -100vh) rotate(45deg) !important;
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .card.fly-away {
+            transform: translateY(-120vh) rotate(15deg) !important;
             opacity: 0;
         }
     </style>
 </head>
 <body>
 
-    <div class="stack-container">
+    <div class="stack-container" id="cardStack">
         <div class="card" onclick="nextCard(1)">
             <div class="photo-frame">
-                <img src="https://i.imgur.com/9WzXQUg.jpeg" alt="Anh 1">
+                <img src="https://i.imgur.com/9WzXQUg.jpeg" alt="Ngày đầu">
             </div>
             <div class="caption">
-                Anh có nhớ hăm đây là ngày đầu tiên mà mình đi chơi với nhau nè :>
+                Anh có nhớ hăm đây là ngày đầu tiên mà mình đi chơi với nhau nè :> thấy vậy thôi cũng tưởng rủ hăm được đó tại đó giờ rủ có bao giờ được đâu -.-
             </div>
         </div>
 
         <div class="card" onclick="nextCard(2)">
             <div class="photo-frame">
-                <img src="https://i.imgur.com/O1BPg7b.jpeg" alt="Anh 2">
+                <img src="https://i.imgur.com/O1BPg7b.jpeg" alt="Tặng hoa">
             </div>
             <div class="caption">
-                Anh có nhớ ngày đầu tiên mình quen nhau hongggg, lần đầu em được tặng hoa á =))
+                Anh có nhớ ngày đầu tiên mình quen nhau hongggg, nói đừng có cười chứ đây là lần đầu tiên em được tặng hoa đó =))
             </div>
         </div>
 
         <div class="card" onclick="nextCard(3)">
             <div class="photo-frame">
-                <img src="https://i.imgur.com/FettR33.jpeg" alt="Anh 3">
+                <img src="https://i.imgur.com/FettR33.jpeg" alt="1 tháng">
             </div>
             <div class="caption">
-                Em hong tin là từ bạn qua mạng mà mình có thể quen nhau tới bây giờ đó =)))
+                Em hong tin là từ bạn qua mạng mà mình có thể quen nhau tới bây giờ đó =))) kỷ niệm 1 thánggggg
             </div>
         </div>
 
-        <div class="card" style="background: linear-gradient(to top, #fff0f5, #fff);">
+        <div class="card final-card" style="background: linear-gradient(to bottom, #fff, #fff0f5);">
             <div class="final-card-content">
                 <h2>Happy 2 Months! 🎉</h2>
-                <div class="message-body">Hôm nay là kỷ niệm 2 tháng rồi dù có nhiều biến cố... (Lời nhắn của em)... hướng đến mục tiêu chung vì hạnh phúc chung, em mong rằng anh sẽ thật hạnh phúc, mạnh khoẻ và luôn mỉm cười anh nhé, em thương anh nhiềuuuuuuu ❤️</div>
+                <div class="message-body">Hôm nay là kỷ niệm 2 tháng rồi dù có nhiều biến cố, nhiều chuyện buồn cũng như có nhiều chuyện vui, ai cũng có quan điểm, cũng có cách sống, cũng có tình cảnh riêng trong mọi vấn đề của mỗi người tuy nhiên dù có nhiều khác biệt ấy mình vẫn ở đây, theo em mối quan hệ tình cảm không phải là hoà hợp với nhau mà là cùng phát triển điểm chung và tôn trọng điểm khác biệt, hướng đến mục tiêu chung vì hạnh phúc chung, em mong rằng dù cho mai về sau em mong rằng anh sẽ thật hạnh phúc, mạnh khoẻ và luôn mỉn cười anh nhé, em thương anh nhiềuuuuuuu và anh hãy thương anh nhiều nhé.</div>
                 
-                <div class="lotus-emoji" id="lotusIcon">🪷</div>
+                <div class="lotus-container" id="lotusEffect">
+                    <svg class="lotus-svg" viewBox="0 0 100 80" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="lotusGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#ffe6ee;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <path d="M30 60 Q10 40 30 20 Q40 40 30 60" fill="url(#lotusGradient)" stroke="#eec0c0" stroke-width="0.5"/>
+                        <path d="M20 65 Q5 45 20 30 Q30 50 20 65" fill="url(#lotusGradient)" stroke="#eec0c0" stroke-width="0.5"/>
+                        <path d="M70 60 Q90 40 70 20 Q60 40 70 60" fill="url(#lotusGradient)" stroke="#eec0c0" stroke-width="0.5"/>
+                        <path d="M80 65 Q95 45 80 30 Q70 50 80 65" fill="url(#lotusGradient)" stroke="#eec0c0" stroke-width="0.5"/>
+                        <path d="M50 70 Q30 40 50 10 Q70 40 50 70" fill="white" stroke="#eec0c0" stroke-width="0.5"/>
+                        <path d="M35 70 Q50 80 65 70" fill="none" stroke="#a0c0a0" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script>
         let currentCardIndex = 1;
         const totalCards = 4;
 
-        function nextCard(index) {
-            // Chỉ cho phép click đúng thứ tự
-            if (index !== currentCardIndex) return;
-
-            // Lấy thẻ hiện tại
-            let card = document.querySelector(`.card:nth-child(${index})`);
-            
-            // Bay màu
-            card.classList.add('fly-away');
-            
-            // Tăng biến đếm
+        function nextCard(cardIndex) {
+            if (cardIndex !== currentCardIndex) return;
+            const cards = document.querySelectorAll('.card');
+            const currentCard = cards[currentCardIndex - 1];
+            currentCard.classList.add('fly-away');
             currentCardIndex++;
 
-            // Nếu là thẻ cuối cùng (hiện ra thẻ 4)
             if (currentCardIndex === totalCards) {
-                setTimeout(showFinalEffect, 600);
+                setTimeout(() => { triggerFinalEffects(); }, 600);
             }
         }
 
-        function showFinalEffect() {
-            // 1. Hiện hoa sen
-            let lotus = document.getElementById('lotusIcon');
-            lotus.classList.add('show');
+        function triggerFinalEffects() {
+            // Hiệu ứng pháo hoa
+            var duration = 3 * 1000;
+            var end = Date.now() + duration;
+            (function frame() {
+                var timeLeft = end - Date.now();
+                if (timeLeft <= 0) return;
+                confetti({
+                    particleCount: 3,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 },
+                    colors: ['#ffb7b2', '#ffdac1', '#e2f0cb', '#b5ead7', '#c7ceea'] // Màu pastel
+                });
+                confetti({
+                    particleCount: 3,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 },
+                    colors: ['#ffb7b2', '#ffdac1', '#e2f0cb', '#b5ead7', '#c7ceea']
+                });
+                requestAnimationFrame(frame);
+            }());
 
-            // 2. Bắn pháo hoa (nếu thư viện tải được)
-            if (typeof confetti === 'function') {
-                let end = Date.now() + 3000;
-                let colors = ['#ffc0cb', '#87ceeb', '#dda0dd']; // Hồng, Xanh, Tím
-
-                (function frame() {
-                    if (Date.now() > end) return;
-                    
-                    confetti({
-                        particleCount: 5,
-                        angle: 60,
-                        spread: 55,
-                        origin: { x: 0 },
-                        colors: colors
-                    });
-                    confetti({
-                        particleCount: 5,
-                        angle: 120,
-                        spread: 55,
-                        origin: { x: 1 },
-                        colors: colors
-                    });
-                    requestAnimationFrame(frame);
-                }());
-            }
+            // Hiện hoa sen
+            document.getElementById('lotusEffect').classList.add('show');
         }
     </script>
 </body>
